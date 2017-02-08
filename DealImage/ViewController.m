@@ -12,14 +12,24 @@
 #define kBitsPerPixel (32)
 #define kPixelChannelCount (4)
 
+struct RGB{
+    int r;
+    int g;
+    int b;
+    int a;
+    CGPoint point;
+};
+
+typedef struct RGB RGB;
+
 
 @interface ViewController ()
 
-@property (strong, nonatomic) UIImageView *imageV1;
-@property (strong, nonatomic) UIImageView *imageV2;
-@property (strong, nonatomic) UILabel *label1;
-@property (strong, nonatomic) UILabel *label2;
-@property (strong, nonatomic) UIButton *button;
+@property (nonatomic, strong) UIImageView *imageV1;
+@property (nonatomic, strong) UIImageView *imageV2;
+@property (nonatomic, strong) UILabel *label1;
+@property (nonatomic, strong) UILabel *label2;
+@property (nonatomic, strong) UIButton *button;
 
 @end
 
@@ -28,7 +38,7 @@
 - (void)viewDidLoad {
     [super viewDidLoad];
 
-    self.view.backgroundColor = [UIColor colorWithWhite:0.9 alpha:1.0];
+    self.view.backgroundColor = [UIColor colorWithWhite:0.8 alpha:1.0];
     [self.view addSubview:self.label1];
     [self.view addSubview:self.imageV1];
     [self.view addSubview:self.label2];
@@ -46,7 +56,7 @@
         _imageV1.contentMode = UIViewContentModeScaleAspectFit;
         _imageV1.layer.borderColor = [UIColor blackColor].CGColor;
         _imageV1.layer.borderWidth = 1.0;
-        _imageV1.frame = CGRectMake(40, 55, 200, 200);
+        _imageV1.frame = CGRectMake(40, 55, 250, 250);
     }
     return _imageV1;
 }
@@ -57,7 +67,7 @@
         _imageV2.contentMode = UIViewContentModeScaleAspectFit;
         _imageV2.layer.borderColor = [UIColor blackColor].CGColor;
         _imageV2.layer.borderWidth = 1.0;
-        _imageV2.frame = CGRectMake(40, 310, 200, 200);
+        _imageV2.frame = CGRectMake(40, 360, 250, 250);
     }
     return _imageV2;
 }
@@ -75,7 +85,7 @@
     if (_label2 == nil) {
         _label2 = [[UILabel alloc] init];
         _label2.text = @"结果图";
-        _label2.frame = CGRectMake(40, 280, 70, 20);
+        _label2.frame = CGRectMake(40, 330, 70, 20);
     }
     return _label2;
 }
@@ -83,15 +93,15 @@
 - (UIButton *)button {
     if (_button == nil) {
         _button = [[UIButton alloc] init];
-        [_button setTitle:@"计算" forState:UIControlStateNormal];
+        [_button setTitle:@"变换" forState:UIControlStateNormal];
         _button.backgroundColor = [UIColor blueColor];
         [_button addTarget:self action:@selector(buttonAction:) forControlEvents:UIControlEventTouchUpInside];
-        _button.frame = CGRectMake(40, 530, 70, 30);
+        _button.frame = CGRectMake(40, 630, 70, 30);
     }
     return _button;
 }
 
-- (void)buttonAction:(UIButton *)b {
+- (void)buttonAction:(UIButton *)button {
     UIImage *image = [UIImage imageNamed:@"IMG_0043"];
     UIImage *img = [self dealImage:image];
     self.imageV2.image = img;
@@ -105,8 +115,20 @@
     int height = img.size.height * img.scale;
 
     // 2.处理 imgData
-//    dealImage(imgData, width, height);//反色
-    dealImageMosaic(imgData,width,height,20);//马赛克
+//    dealImageInverse(imgData, width, height);//反色
+//    dealImageMosaic(imgData,width,height,20);//马赛克
+
+    const float matrix[] = {0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                            0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                            0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                            0       ,0      ,0      ,1      ,0}; //颜色矩阵滤镜
+
+    const float matrix1[] = {-1  ,0   ,0    ,0   ,255,
+                             0   ,-1  ,0    ,0   ,255,
+                             0   ,0   ,-1   ,0   ,255,
+                             0   ,0   ,0    ,1   ,0}; //颜色矩阵滤镜 该矩阵滤镜同样是取反色
+
+    dealImageFilter(imgData, width, height, matrix);
 
     // 3.CGDataProviderRef 把 二进制流 转 CGImage
     CGDataProviderRef pv = CGDataProviderCreateWithData(NULL, imgData, width * height * kPixelChannelCount, releaseData);
@@ -146,10 +168,10 @@ void dealImageMosaic(UInt32 *image,int width, int height, int level) {
     }
 }
 
-void dealImage(UInt32 *img, int w, int h) {
-    int num = w * h;
+//取反色
+void dealImageInverse(UInt32 *img, int w, int h) {
     UInt32 *cur = img;
-    for (int i=0; i<num; i++, cur++) {
+    for (int i=0; i< w * h; i++, cur++) {
         UInt8 *p = (UInt8 *)cur;
         // RGBA 排列取反色
         p[0] = 255 - p[0];
@@ -158,6 +180,56 @@ void dealImage(UInt32 *img, int w, int h) {
         p[3] = 255;
     }
 }
+
+//颜色矩阵滤镜
+void dealImageFilter(UInt32 *img,int w,int h,const float *matrix) {
+    UInt8 *cur = (UInt8 *)img;
+    for (int i=0; i< w * h; i++, cur+=kPixelChannelCount) {
+        int red = cur[0];
+        int green = cur[1];
+        int blue = cur[2];
+        int alpha = cur[3];
+        changeRGBA(&red, &green, &blue, &alpha, matrix);
+        cur[0] = red;
+        cur[1] = green;
+        cur[2] = blue;
+        cur[3] = alpha;
+    }
+}
+
+static void changeRGBA(int *red,int *green,int *blue, int *alpha,const float *matrix) {
+    float r = *red;
+    float g = *green;
+    float b = *blue;
+    float a = *alpha;
+    *red   = matrix[0] *r + matrix[1] *g + matrix[2] *b + matrix[3] *a + matrix[4];
+    *green = matrix[5] *r + matrix[6] *g + matrix[7] *b + matrix[8] *a + matrix[9];
+    *blue  = matrix[10]*r + matrix[11]*g + matrix[12]*b + matrix[13]*a + matrix[14];
+    *alpha = matrix[15]*r + matrix[16]*g + matrix[17]*b + matrix[18]*a + matrix[19];
+    *red > 255 ? *red = 255 :NO;
+    *green > 255 ? *green = 255 :NO;
+    *blue > 255 ? *blue = 255 :NO;
+    *alpha > 255 ? *alpha = 255 :NO;
+    *red < 0 ? *red = 0 : NO;
+    *green < 0 ? *green = 0 : NO;
+    *blue < 0 ? *blue = 0 : NO;
+    *alpha < 0 ? *alpha = 0 : NO;
+}
+
+//获取随机某点的rgba值
+RGB rgbRound(UInt32 *image,int w,int h) {
+    CGPoint point = CGPointMake(arc4random() % w, arc4random() % h);
+    UInt32 *img = image + (int)point.y*w + (int)point.x;
+    UInt8 *p = (UInt8 *)img;
+    RGB rgb;
+    rgb.r = p[0];
+    rgb.g = p[1];
+    rgb.b = p[2];
+    rgb.a = p[3];
+    rgb.point = point;
+    return rgb;
+}
+
 
 - (void)didReceiveMemoryWarning {
     [super didReceiveMemoryWarning];
