@@ -93,11 +93,11 @@
 
 - (void)buttonAction:(UIButton *)b {
     UIImage *image = [UIImage imageNamed:@"IMG_0043"];
-    UIImage *img = [self dealImage:image cornerRadius:100];
+    UIImage *img = [self dealImage:image];
     self.imageV2.image = img;
 }
 
-- (UIImage *)dealImage:(UIImage *)img cornerRadius:(CGFloat)c {
+- (UIImage *)dealImage:(UIImage *)img{
     // 1.CGDataProviderRef 把 CGImage 转 二进制流
     CGDataProviderRef provider = CGImageGetDataProvider(img.CGImage);
     void *imgData = (void *)CFDataGetBytePtr(CGDataProviderCopyData(provider));
