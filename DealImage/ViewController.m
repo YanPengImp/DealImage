@@ -109,8 +109,8 @@
     dealImageMosaic(imgData,width,height,20);//马赛克
 
     // 3.CGDataProviderRef 把 二进制流 转 CGImage
-    CGDataProviderRef pv = CGDataProviderCreateWithData(NULL, imgData, width * height * 4, releaseData);
-    CGImageRef content = CGImageCreate(width , height, 8, 32, 4 * width, CGColorSpaceCreateDeviceRGB(), kCGBitmapByteOrder32Big | kCGImageAlphaPremultipliedLast, pv, NULL, true, kCGRenderingIntentDefault);
+    CGDataProviderRef pv = CGDataProviderCreateWithData(NULL, imgData, width * height * kPixelChannelCount, releaseData);
+    CGImageRef content = CGImageCreate(width , height, kBitsPerComponent, kBitsPerPixel, kPixelChannelCount * width, CGColorSpaceCreateDeviceRGB(), kCGBitmapByteOrder32Big | kCGImageAlphaPremultipliedLast, pv, NULL, true, kCGRenderingIntentDefault);
     UIImage *result = [UIImage imageWithCGImage:content];
     CGDataProviderRelease(pv);
     CGImageRelease(content);
