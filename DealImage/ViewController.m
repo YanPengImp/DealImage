@@ -30,6 +30,7 @@ typedef struct RGB RGB;
 @property (nonatomic, strong) UILabel *label1;
 @property (nonatomic, strong) UILabel *label2;
 @property (nonatomic, strong) UIButton *button;
+@property (nonatomic, strong) UISlider *slider;
 
 @end
 
@@ -44,6 +45,7 @@ typedef struct RGB RGB;
     [self.view addSubview:self.label2];
     [self.view addSubview:self.imageV2];
     [self.view addSubview:self.button];
+    [self.view addSubview:self.slider];
 
     UIImage *image = [UIImage imageNamed:@"IMG_0043"];
     self.imageV1.image = image;
@@ -101,13 +103,48 @@ typedef struct RGB RGB;
     return _button;
 }
 
+- (UISlider *)slider {
+    if (!_slider) {
+        _slider = [[UISlider alloc] initWithFrame:CGRectMake(150, 645, 150, 10)];
+        [_slider addTarget:self action:@selector(sliderAction:) forControlEvents:UIControlEventValueChanged];
+        _slider.value = 0.5;
+    }
+    return _slider;
+}
+
 - (void)buttonAction:(UIButton *)button {
     UIImage *image = [UIImage imageNamed:@"IMG_0043"];
-    UIImage *img = [self dealImage:image];
+
+    float matrix[] = {0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                      0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                      0.33f   ,0.33f  ,0.33f  ,0      ,0,
+                      0       ,0      ,0      ,1      ,0}; //颜色矩阵滤镜
+
+    float matrix1[] = {-1  ,0   ,0    ,0   ,255,
+                       0   ,-1  ,0    ,0   ,255,
+                       0   ,0   ,-1   ,0   ,255,
+                       0   ,0   ,0    ,1   ,0  }; //颜色矩阵滤镜 该矩阵滤镜同样是取反色
+
+
+    UIImage *img = [self dealImage:image matrix:matrix];
     self.imageV2.image = img;
 }
 
-- (UIImage *)dealImage:(UIImage *)img{
+
+//调整亮度
+- (void)sliderAction:(UISlider *)slider {
+    CGFloat value = slider.value;
+    CGFloat change = (value - 0.5)/ 1 * 255.0;
+    float matrix[] = {1,0,0,0,change,
+                      0,1,0,0,change,
+                      0,0,1,0,change,
+                      0,0,0,1,0};
+    UIImage *image = [UIImage imageNamed:@"IMG_0043"];
+    UIImage *img = [self dealImage:image matrix:matrix];
+    self.imageV2.image = img;
+}
+
+- (UIImage *)dealImage:(UIImage *)img matrix:(float *)matrix{
     // 1.CGDataProviderRef 把 CGImage 转 二进制流
     CGDataProviderRef provider = CGImageGetDataProvider(img.CGImage);
     void *imgData = (void *)CFDataGetBytePtr(CGDataProviderCopyData(provider));
@@ -117,16 +154,6 @@ typedef struct RGB RGB;
     // 2.处理 imgData
 //    dealImageInverse(imgData, width, height);//反色
 //    dealImageMosaic(imgData,width,height,20);//马赛克
-
-    const float matrix[] = {0.33f   ,0.33f  ,0.33f  ,0      ,0,
-                            0.33f   ,0.33f  ,0.33f  ,0      ,0,
-                            0.33f   ,0.33f  ,0.33f  ,0      ,0,
-                            0       ,0      ,0      ,1      ,0}; //颜色矩阵滤镜
-
-    const float matrix1[] = {-1  ,0   ,0    ,0   ,255,
-                             0   ,-1  ,0    ,0   ,255,
-                             0   ,0   ,-1   ,0   ,255,
-                             0   ,0   ,0    ,1   ,0}; //颜色矩阵滤镜 该矩阵滤镜同样是取反色
 
     dealImageFilter(imgData, width, height, matrix);
 
