@@ -7,6 +7,7 @@
 //
 
 #import "ViewController.h"
+#import "Filter.h"
 
 #define kBitsPerComponent (8)
 #define kBitsPerPixel (32)
@@ -125,8 +126,7 @@ typedef struct RGB RGB;
                        0   ,0   ,-1   ,0   ,255,
                        0   ,0   ,0    ,1   ,0  }; //颜色矩阵滤镜 该矩阵滤镜同样是取反色
 
-
-    UIImage *img = [self dealImage:image matrix:matrix];
+    UIImage *img = [self dealImage:image matrix:colormatrix_langman];
     self.imageV2.image = img;
 }
 
@@ -153,7 +153,7 @@ typedef struct RGB RGB;
 
     // 2.处理 imgData
 //    dealImageInverse(imgData, width, height);//反色
-//    dealImageMosaic(imgData,width,height,20);//马赛克
+//    dealImageMosaic(imgData,width,height,15);//马赛克
 
     dealImageFilter(imgData, width, height, matrix);
 
@@ -262,6 +262,5 @@ RGB rgbRound(UInt32 *image,int w,int h) {
     [super didReceiveMemoryWarning];
     // Dispose of any resources that can be recreated.
 }
-
 
 @end
